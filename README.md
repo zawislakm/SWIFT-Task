@@ -4,20 +4,20 @@ A SWIFT code, also known as a Bank Identifier Code (BIC), is a unique identifier
 It ensures that international wire transfers are directed to the correct bank and branch, acting as a bank's unique
 address within the global financial network.
 
-## Project Description
-
-Develop an application for storing bank data, with support for data import via CSV files. The application should also
-expose an API for managing the stored data.
-For a detailed task description, refer to [SWIFT-Task.pdf](SWIFT-Task.pdf).
-
 ## Prerequisites
 
-- [Go](https://golang.org/doc/install)
+- [Go 1.23](https://golang.org/doc/install)
 - [Docker](https://docs.docker.com/get-docker/)
 - [Docker Compose](https://docs.docker.com/compose/install/)
 - [PostgreSQL](https://www.postgresql.org/download/)
 
-## Solution
+## How does it work?
+
+This application is designed to store bank data with the ability to import data from CSV file. 
+It also provides an API to manage the stored data effectively.
+For a detailed task description, refer to [SWIFT-Task.pdf](SWIFT-Task.pdf).
+
+### Environment variables
 
 The application for storing secrets uses a `.env` file, which should be placed in the root directory of the project.
 An example file might look like this:
@@ -35,10 +35,12 @@ CSV_FILE_NAME=<file_name>
 
 ### Data import
 
-After starting the application read banks data from the CSV file provided from `CSV_FILE_NAME` and store it in the
-database. To provide new data, put the CSV file in the `csv-data/` directory and change to `CSV_FILE_NAME` variable.
+Upon starting the application, the bank data from the CSV file specified by `CSV_FILE_NAME` will be read and stored in
+the database.
+To update the data, place a new CSV file in the `csv-data/` directory and update the `CSV_FILE_NAME` variable
+accordingly.
 
-To correctly parse data, CSV file needs to have the following columns:
+For proper parsing, the CSV file must contain the following columns:
 
 - `ADDRESS`
 - `NAME`
@@ -49,10 +51,8 @@ To correctly parse data, CSV file needs to have the following columns:
 - `TOWN NAME`
 - `TIME ZONE`
 
-The system imposes strict requirements on the data imported into the database. Data provided in an incorrect format will
-be rejected.
-
-Data requirements:
+The system imposes strict requirements on the data imported into the system via CSV files or API. Data provided in an incorrect format will
+be rejected. Data requirements:
 
 - The SWIFT code must consist of 11 characters.
 - The SWIFT code must be unique.
@@ -62,11 +62,12 @@ Data requirements:
 - The country name cannot be empty.
 - The country name must be uppercased.
 - The bank name cannot be empty.
+- `isHeadquarter` status must match the SWIFT code.
 
 ### Database
 
-PostgreSQL was used to store data about banks. To avoid data duplication, the data was divided into several tables, as
-presented below.
+PostgreSQL is used to store bank data. To prevent data duplication, the information is structured across multiple
+tables, as outlined below.
 
 ```mermaid
 erDiagram
@@ -137,17 +138,15 @@ Return all SWIFT codes with details for a specific country (both headquarters an
 #### POST: `/v1/swift-codes`
 
 Add new SWIFT code entries to the database for a specific country.
-Example body:
-`
-`
 
 #### DELETE: `/v1/swift-codes/{swift-code}`
 
 Delete SWIFT code data if the provided SWIFT code matches one in the database.
 
-Each endpoint either returns the requested data, a message indicating the operation was successful, or an error message.
+Each endpoint returns either the requested data or a message indicating whether the operation was successful, along with
+error details if applicable.
 
-Example error for `POST: /v1/swift-codes` with a body like this:
+Example error response for `/v1/swift-codes` with the following request body:
 
 ```json
 {
@@ -177,7 +176,7 @@ The response might look like this:
 }
 ```
 
-For a correct request like this:
+For a valid request like this:
 
 ```json
 {
@@ -202,40 +201,49 @@ The response might look like this:
 
 ## Running the application
 
-Easiest way to run the application is to use the provided Makefile and use Docker:
+### Using Docker
 
-Start app in Docker:
+The simplest way to run the application is by using the provided Makefile and docker-compose to manage the Docker
+container.
+Start the application in Docker:
 
 ```bash
 make docker-run
 ```
 
-Stop app in Docker:
+Stop the application in Docker:
 
 ```bash
 make docker-down
 ```
 
-There is also a way to run the application without Docker, but it requires a running PostgreSQL instance.
+### Without Docker
 
-```bash
-make run
-```
+You can also run the application without Docker, but this requires a running PostgreSQL instance.
+The easiest way to set up a local PostgreSQL database is by using Docker.
 
-Easiest way to set up PostgreSQL database local is to use Docker. Run the following commands in root directory of the
-project:
+Run the following commands in the project's root directory:
 
 ```bash
 docker pull postgres:15-alpine
 docker run --name swift-task-db -p 5432:5432 --env-file .env -d postgres:15-alpine
 ```
-To stop the database, run:
+
+Once the database is running, start the application with:
+
+```bash
+make run
+```
+
+To stop the database, use:
 
 ```bash
 docker stop swift-task-db
 ```
 
-To run tests, you can use the following commands:
+### Testing
+
+To run tests, use the following command:
 
 ```bash
 make test
